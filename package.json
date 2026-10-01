@@ -1,0 +1,16 @@
+{
+  "name": "roblox-community-discord-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord bot for a Roblox scripting community.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0"
+  }
+}
