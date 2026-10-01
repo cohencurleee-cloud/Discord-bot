@@ -164,7 +164,7 @@ async function runSetup(guild) {
 
   const levelRoles = {};
   for (const reward of config.levelRewards) {
-    levelRoles[reward.level] = await ensureRole(guild, `🏆 ${reward.role}`);
+    levelRoles[reward.level] = await ensureRole(guild, "🏆 " + reward.role);
   }
 
   const infoCategory = await ensureCategory(guild, "📌 START HERE");
