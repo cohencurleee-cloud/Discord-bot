@@ -141,79 +141,91 @@ async function ensureChannel(guild, name, parent = null, options = {}) {
   return channel;
 }
 
+async function ensureCategory(guild, name) {
+  let category = guild.channels.cache.find(
+    c => c.type === ChannelType.GuildCategory && c.name === name
+  );
+  if (!category) {
+    category = await guild.channels.create({
+      name,
+      type: ChannelType.GuildCategory,
+      reason: "Community bot setup"
+    });
+  }
+  return category;
+}
+
 async function runSetup(guild) {
   const config = guildData(guild.id);
 
-  const everyone = guild.roles.everyone;
-
-  const staffRole = await ensureRole(guild, "Staff");
-  const verifiedRole = await ensureRole(guild, "Verified");
-  const mutedRole = await ensureRole(guild, "Muted");
+  const staffRole = await ensureRole(guild, "🛡️ Staff");
+  const verifiedRole = await ensureRole(guild, "✅ Verified");
+  const mutedRole = await ensureRole(guild, "🔇 Muted");
 
   const levelRoles = {};
   for (const reward of config.levelRewards) {
-    levelRoles[reward.level] = await ensureRole(guild, reward.role);
+    levelRoles[reward.level] = await ensureRole(guild, \`🏆 \${reward.role}\`);
   }
 
-  let infoCategory = guild.channels.cache.find(
-    c => c.type === ChannelType.GuildCategory && c.name === "INFO"
+  const infoCategory = await ensureCategory(guild, "📌 START HERE");
+  const communityCategory = await ensureCategory(guild, "💬 COMMUNITY");
+  const scriptsCategory = await ensureCategory(guild, "📜 SCRIPT HUB");
+  const challengeCategory = await ensureCategory(guild, "🎯 CHALLENGES");
+  const supportCategory = await ensureCategory(guild, "🆘 SUPPORT");
+  const staffCategory = await ensureCategory(guild, "🔒 STAFF");
+
+  const channels = {};
+
+  const channelSpecs = [
+    ["📜・rules", infoCategory, "Server rules and important information."],
+    ["📢・announcements", infoCategory, "Official server announcements."],
+    ["👋・welcome", infoCategory, "Welcome new members."],
+    ["✅・verify", infoCategory, "Verify to access the community."],
+    ["📖・server-info", infoCategory, "How the server works and useful links."],
+
+    ["💬・general", communityCategory, "General community chat."],
+    ["👋・introductions", communityCategory, "Introduce yourself to everyone."],
+    ["😂・memes", communityCategory, "Memes and funny posts."],
+    ["🖼️・media", communityCategory, "Screenshots, clips and other media."],
+    ["💡・suggestions", communityCategory, "Suggest ideas for the community."],
+    ["🏆・leaderboard", communityCategory, "Talk about XP, levels and community challenges."],
+    ["🤖・bot-commands", communityCategory, "Use bot commands here."],
+
+    ["📚・script-library", scriptsCategory, "Scripts and resources you are authorized to distribute."],
+    ["🆕・script-releases", scriptsCategory, "New script/resource releases."],
+    ["⭐・script-showcase", scriptsCategory, "Showcase your own projects."],
+    ["🔑・key-help", scriptsCategory, "Help with keys for scripts you own or are authorized to distribute."],
+    ["🐛・bug-reports", scriptsCategory, "Report bugs in community resources."],
+
+    ["🖥️・pc-challenges", challengeCategory, "PC-focused challenges and submissions."],
+    ["📱・mobile-challenges", challengeCategory, "Mobile-focused challenges and submissions."],
+    ["🎮・executor-challenges", challengeCategory, "Executor-themed challenges using resources you are authorized to use."],
+    ["📤・challenge-submissions", challengeCategory, "Post your challenge submissions here."],
+    ["🏅・challenge-results", challengeCategory, "Challenge results and winners."],
+
+    ["🎫・create-ticket", supportCategory, "Open a private support ticket."],
+    ["❓・help", supportCategory, "Community help and questions."],
+    ["📋・faq", supportCategory, "Frequently asked questions."],
+
+    ["📜・mod-logs", staffCategory, "Moderation and AutoMod logs."],
+    ["🛡️・staff-chat", staffCategory, "Private staff discussion."],
+    ["🚨・alerts", staffCategory, "Important moderation alerts."]
+  ];
+
+  for (const [name, parent, topic] of channelSpecs) {
+    channels[name] = await ensureChannel(guild, name, parent, { topic });
+  }
+
+  const rules = channels["📜・rules"];
+  const announcements = channels["📢・announcements"];
+  const verify = channels["✅・verify"];
+  const tickets = channels["🎫・create-ticket"];
+  const logs = channels["📜・mod-logs"];
+
+  config.channels = Object.fromEntries(
+    Object.entries(channels).map(([name, channel]) => [name, channel.id])
   );
-  if (!infoCategory) {
-    infoCategory = await guild.channels.create({
-      name: "INFO",
-      type: ChannelType.GuildCategory
-    });
-  }
-
-  let communityCategory = guild.channels.cache.find(
-    c => c.type === ChannelType.GuildCategory && c.name === "COMMUNITY"
-  );
-  if (!communityCategory) {
-    communityCategory = await guild.channels.create({
-      name: "COMMUNITY",
-      type: ChannelType.GuildCategory
-    });
-  }
-
-  let supportCategory = guild.channels.cache.find(
-    c => c.type === ChannelType.GuildCategory && c.name === "SUPPORT"
-  );
-  if (!supportCategory) {
-    supportCategory = await guild.channels.create({
-      name: "SUPPORT",
-      type: ChannelType.GuildCategory
-    });
-  }
-
-  let scriptsCategory = guild.channels.cache.find(
-    c => c.type === ChannelType.GuildCategory && c.name === "SCRIPTS"
-  );
-  if (!scriptsCategory) {
-    scriptsCategory = await guild.channels.create({
-      name: "SCRIPTS",
-      type: ChannelType.GuildCategory
-    });
-  }
-
-  const rules = await ensureChannel(guild, "rules", infoCategory);
-  const announcements = await ensureChannel(guild, "announcements", infoCategory);
-  const verify = await ensureChannel(guild, "verify", infoCategory);
-  const general = await ensureChannel(guild, "general", communityCategory);
-  const botCommands = await ensureChannel(guild, "bot-commands", communityCategory);
-  const scripts = await ensureChannel(guild, "script-library", scriptsCategory);
-  const tickets = await ensureChannel(guild, "create-ticket", supportCategory);
-  const logs = await ensureChannel(guild, "mod-logs", supportCategory);
-
-  config.channels = {
-    rules: rules.id,
-    announcements: announcements.id,
-    verify: verify.id,
-    general: general.id,
-    botCommands: botCommands.id,
-    scripts: scripts.id,
-    tickets: tickets.id,
-    logs: logs.id
-  };
+  config.channels.tickets = tickets.id;
   config.logChannelId = logs.id;
   config.roles = {
     staff: staffRole.id,
@@ -229,14 +241,24 @@ async function runSetup(guild) {
   await rules.send({
     embeds: [
       new EmbedBuilder()
-        .setTitle("Server Rules")
+        .setTitle("📜 Server Rules")
         .setDescription(
-          "1. Respect everyone.\n" +
-          "2. No spam or raids.\n" +
-          "3. No malicious files or links.\n" +
-          "4. Keep scripts and resources in the correct channels.\n" +
-          "5. Follow Discord's rules and the server staff's instructions."
+          "1. Respect everyone.\\n" +
+          "2. No spam, raids or mass mentions.\\n" +
+          "3. No malicious files or links.\\n" +
+          "4. Only share scripts/resources you own or are authorized to distribute.\\n" +
+          "5. Keep posts in the correct channels.\\n" +
+          "6. Follow Discord's rules and staff instructions."
         )
+        .setColor(0x5865f2)
+    ]
+  }).catch(() => {});
+
+  await announcements.send({
+    embeds: [
+      new EmbedBuilder()
+        .setTitle("📢 Server Ready")
+        .setDescription("The community is set up. Check the channels above and start exploring!")
         .setColor(0x5865f2)
     ]
   }).catch(() => {});
@@ -244,14 +266,14 @@ async function runSetup(guild) {
   const verifyRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("verify_member")
-      .setLabel("Verify")
+      .setLabel("✅ Verify")
       .setStyle(ButtonStyle.Success)
   );
 
   await verify.send({
     embeds: [
       new EmbedBuilder()
-        .setTitle("Verify")
+        .setTitle("✅ Verify")
         .setDescription("Click the button below to get access to the community.")
         .setColor(0x57f287)
     ],
@@ -261,14 +283,14 @@ async function runSetup(guild) {
   const ticketRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("open_ticket")
-      .setLabel("Open Ticket")
+      .setLabel("🎫 Open Ticket")
       .setStyle(ButtonStyle.Primary)
   );
 
   await tickets.send({
     embeds: [
       new EmbedBuilder()
-        .setTitle("Support")
+        .setTitle("🎫 Support")
         .setDescription("Need help? Open a private ticket with the button below.")
         .setColor(0x5865f2)
     ],
