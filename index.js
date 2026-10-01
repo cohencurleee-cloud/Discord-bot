@@ -692,7 +692,7 @@ client.on(Events.MessageCreate, async message => {
   if (suspiciousDomains.some(domain => content.includes(domain))) {
     await message.delete().catch(() => {});
     await message.channel.send({
-      content: `<@${message.author.id}> that link was removed automatically. Ask staff if it was legitimate.`
+      content: `🤖 I removed that link automatically because it matched a suspicious-link filter. Ask staff if it was legitimate.`
     }).then(m => setTimeout(() => m.delete().catch(() => {}), 5000)).catch(() => {});
     await sendLog(message.guild, "AutoMod: Suspicious Link", `Removed a shortened link from <@${message.author.id}>.`);
     return;
@@ -711,13 +711,13 @@ client.on(Events.MessageCreate, async message => {
       const reward = config.levelRewards.find(r => r.level === newLevel);
 
       if (reward) {
-        const role = message.guild.roles.cache.find(r => r.name === reward.role);
+        const role = message.guild.roles.cache.find(r => r.name === `🏆 ${reward.role}`) || message.guild.roles.cache.find(r => r.name === reward.role);
         if (role && message.member.manageable) {
           await message.member.roles.add(role, "Level reward").catch(() => {});
         }
       }
 
-      await message.channel.send(`🎉 <@${message.author.id}> reached **Level ${newLevel}**!`).then(m => {
+      await message.channel.send(`🤖 I just sent an automatic update: 🎉 <@${message.author.id}> reached **Level ${newLevel}**!`).then(m => {
         setTimeout(() => m.delete().catch(() => {}), 8000);
       }).catch(() => {});
     }
