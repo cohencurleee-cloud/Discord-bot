@@ -158,9 +158,55 @@ async function ensureCategory(guild, name) {
 async function runSetup(guild) {
   const config = guildData(guild.id);
 
-  const staffRole = await ensureRole(guild, "🛡️ Staff");
-  const verifiedRole = await ensureRole(guild, "✅ Verified");
-  const mutedRole = await ensureRole(guild, "🔇 Muted");
+  // Full server role pack. Existing roles with these names are reused.
+  const roleSpecs = [
+    ["👑 Owner", 0xED4245],
+    ["💎 Co-Owner", 0xF1C40F],
+    ["🛡️ Head Admin", 0xE67E22],
+    ["🔨 Admin", 0xE74C3C],
+    ["🛡️ Head Moderator", 0x9B59B6],
+    ["🔧 Moderator", 0x5865F2],
+    ["🧪 Trial Moderator", 0x3498DB],
+    ["🎫 Support", 0x2ECC71],
+    ["🛠️ Developer", 0x57F287],
+    ["🎨 Designer", 0xEB459E],
+    ["🤖 Bot", 0x95A5A6],
+    ["📢 Announcements", 0xFEE75C],
+    ["🤝 Partner", 0x1ABC9C],
+    ["💎 Server Booster", 0xFF73FA],
+    ["💰 Donator", 0xF1C40F],
+    ["🌟 VIP", 0xFFD700],
+    ["🏆 OG", 0xFF8C00],
+    ["🎮 Gamer", 0x5865F2],
+    ["🎵 Music", 0x1DB954],
+    ["🎨 Creator", 0xE91E63],
+    ["🟢 Active", 0x57F287],
+    ["🔵 Member", 0x3498DB],
+    ["⚪ New Member", 0x99AAB5],
+    ["🌈 Community", 0x9B59B6],
+    ["🔥 Event Winner", 0xF04747],
+    ["🏅 Challenge Winner", 0xF1C40F],
+    ["🧠 Expert", 0x7289DA],
+    ["✨ Trusted", 0x00B0F4],
+    ["🆘 Needs Help", 0xE91E63],
+    ["🔇 Muted", 0x747F8D],
+    ["🚫 Quarantined", 0x992D22],
+    ["👻 AFK", 0x607D8B],
+    ["📱 Mobile", 0x2ECC71],
+    ["💻 PC", 0x3498DB],
+    ["🎁 Giveaway Winner", 0xFF66CC],
+    ["🔑 Script Tester", 0x00FFFF],
+    ["📚 Script Member", 0x7289DA]
+  ];
+
+  const createdRoles = {};
+  for (const [name, color] of roleSpecs) {
+    createdRoles[name] = await ensureRole(guild, name, { color });
+  }
+
+  const staffRole = createdRoles["🛡️ Head Moderator"];
+  const verifiedRole = await ensureRole(guild, "✅ Verified", { color: 0x57F287 });
+  const mutedRole = createdRoles["🔇 Muted"];
 
   const levelRoles = {};
   for (const reward of config.levelRewards) {
@@ -231,6 +277,12 @@ async function runSetup(guild) {
     staff: staffRole.id,
     verified: verifiedRole.id,
     muted: mutedRole.id,
+    ...Object.fromEntries(
+      Object.entries(createdRoles).map(([name, role]) => [
+        name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+        role.id
+      ])
+    ),
     ...Object.fromEntries(
       Object.entries(levelRoles).map(([level, role]) => ["level" + level, role.id])
     )
