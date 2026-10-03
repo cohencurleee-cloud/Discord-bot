@@ -372,13 +372,9 @@ const commands = [
     .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild.toString()),
 
   new SlashCommandBuilder()
-    .setName("role")
-    .setDescription("Manage server roles.")
-    .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild.toString())
-    .addSubcommand(s =>
-      s.setName("add")
-        .setDescription("Add the full server role pack.")
-    ),
+    .setName("role-add")
+    .setDescription("Add the full server role pack.")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild.toString()),
 
   new SlashCommandBuilder()
     .setName("ping")
@@ -496,19 +492,17 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply(`Pong! ${client.ws.ping}ms`);
     }
 
-    if (interaction.commandName === "role") {
+    if (interaction.commandName === "role-add") {
       if (!isModerator(interaction)) {
         return interaction.reply({ content: "You need Manage Server.", ephemeral: true });
       }
 
-      if (interaction.options.getSubcommand() === "add") {
-        await interaction.deferReply({ ephemeral: true });
-        const roles = await addRolePack(interaction.guild);
-        saveData();
-        return interaction.editReply(
-          `Done. Added/reused ${Object.keys(roles).length} roles. No channels or other server setup was changed.`
-        );
-      }
+      await interaction.deferReply({ ephemeral: true });
+      const roles = await addRolePack(interaction.guild);
+      saveData();
+      return interaction.editReply(
+        `Done. Added/reused ${Object.keys(roles).length} roles. No channels or other server setup was changed.`
+      );
     }
 
     if (interaction.commandName === "setup") {
