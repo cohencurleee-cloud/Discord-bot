@@ -127,6 +127,62 @@ async function ensureRole(guild, name, options = {}) {
   return role;
 }
 
+const ROLE_SPECS = [
+  ["👑 Owner", 0xED4245],
+  ["💎 Co-Owner", 0xF1C40F],
+  ["🛡️ Head Admin", 0xE67E22],
+  ["🔨 Admin", 0xE74C3C],
+  ["🛡️ Head Moderator", 0x9B59B6],
+  ["🔧 Moderator", 0x5865F2],
+  ["🧪 Trial Moderator", 0x3498DB],
+  ["🎫 Support", 0x2ECC71],
+  ["🛠️ Developer", 0x57F287],
+  ["🎨 Designer", 0xEB459E],
+  ["🤖 Bot", 0x95A5A6],
+  ["📢 Announcements", 0xFEE75C],
+  ["🤝 Partner", 0x1ABC9C],
+  ["💎 Server Booster", 0xFF73FA],
+  ["💰 Donator", 0xF1C40F],
+  ["🌟 VIP", 0xFFD700],
+  ["🏆 OG", 0xFF8C00],
+  ["🎮 Gamer", 0x5865F2],
+  ["🎵 Music", 0x1DB954],
+  ["🎨 Creator", 0xE91E63],
+  ["🟢 Active", 0x57F287],
+  ["🔵 Member", 0x3498DB],
+  ["⚪ New Member", 0x99AAB5],
+  ["🌈 Community", 0x9B59B6],
+  ["🔥 Event Winner", 0xF04747],
+  ["🏅 Challenge Winner", 0xF1C40F],
+  ["🧠 Expert", 0x7289DA],
+  ["✨ Trusted", 0x00B0F4],
+  ["🆘 Needs Help", 0xE91E63],
+  ["🔇 Muted", 0x747F8D],
+  ["🚫 Quarantined", 0x992D22],
+  ["👻 AFK", 0x607D8B],
+  ["📱 Mobile", 0x2ECC71],
+  ["💻 PC", 0x3498DB],
+  ["🎁 Giveaway Winner", 0xFF66CC],
+  ["🔑 Script Tester", 0x00FFFF],
+  ["📚 Script Member", 0x7289DA]
+];
+
+async function addRolePack(guild) {
+  const roles = {};
+  for (const [name, color] of ROLE_SPECS) {
+    roles[name] = await ensureRole(guild, name, { color });
+  }
+
+  roles["✅ Verified"] = await ensureRole(guild, "✅ Verified", { color: 0x57F287 });
+
+  const config = guildData(guild.id);
+  for (const reward of config.levelRewards) {
+    roles["🏆 " + reward.role] = await ensureRole(guild, "🏆 " + reward.role);
+  }
+
+  return roles;
+}
+
 async function ensureChannel(guild, name, parent = null, options = {}) {
   let channel = guild.channels.cache.find(c => c.name === name);
   if (!channel) {
@@ -158,59 +214,16 @@ async function ensureCategory(guild, name) {
 async function runSetup(guild) {
   const config = guildData(guild.id);
 
-  // Full server role pack. Existing roles with these names are reused.
-  const roleSpecs = [
-    ["👑 Owner", 0xED4245],
-    ["💎 Co-Owner", 0xF1C40F],
-    ["🛡️ Head Admin", 0xE67E22],
-    ["🔨 Admin", 0xE74C3C],
-    ["🛡️ Head Moderator", 0x9B59B6],
-    ["🔧 Moderator", 0x5865F2],
-    ["🧪 Trial Moderator", 0x3498DB],
-    ["🎫 Support", 0x2ECC71],
-    ["🛠️ Developer", 0x57F287],
-    ["🎨 Designer", 0xEB459E],
-    ["🤖 Bot", 0x95A5A6],
-    ["📢 Announcements", 0xFEE75C],
-    ["🤝 Partner", 0x1ABC9C],
-    ["💎 Server Booster", 0xFF73FA],
-    ["💰 Donator", 0xF1C40F],
-    ["🌟 VIP", 0xFFD700],
-    ["🏆 OG", 0xFF8C00],
-    ["🎮 Gamer", 0x5865F2],
-    ["🎵 Music", 0x1DB954],
-    ["🎨 Creator", 0xE91E63],
-    ["🟢 Active", 0x57F287],
-    ["🔵 Member", 0x3498DB],
-    ["⚪ New Member", 0x99AAB5],
-    ["🌈 Community", 0x9B59B6],
-    ["🔥 Event Winner", 0xF04747],
-    ["🏅 Challenge Winner", 0xF1C40F],
-    ["🧠 Expert", 0x7289DA],
-    ["✨ Trusted", 0x00B0F4],
-    ["🆘 Needs Help", 0xE91E63],
-    ["🔇 Muted", 0x747F8D],
-    ["🚫 Quarantined", 0x992D22],
-    ["👻 AFK", 0x607D8B],
-    ["📱 Mobile", 0x2ECC71],
-    ["💻 PC", 0x3498DB],
-    ["🎁 Giveaway Winner", 0xFF66CC],
-    ["🔑 Script Tester", 0x00FFFF],
-    ["📚 Script Member", 0x7289DA]
-  ];
-
-  const createdRoles = {};
-  for (const [name, color] of roleSpecs) {
-    createdRoles[name] = await ensureRole(guild, name, { color });
-  }
+  // Create/reuse the full role pack. Existing roles are reused.
+  const createdRoles = await addRolePack(guild);
 
   const staffRole = createdRoles["🛡️ Head Moderator"];
-  const verifiedRole = await ensureRole(guild, "✅ Verified", { color: 0x57F287 });
+  const verifiedRole = createdRoles["✅ Verified"];
   const mutedRole = createdRoles["🔇 Muted"];
 
   const levelRoles = {};
   for (const reward of config.levelRewards) {
-    levelRoles[reward.level] = await ensureRole(guild, "🏆 " + reward.role);
+    levelRoles[reward.level] = createdRoles["🏆 " + reward.role];
   }
 
   const infoCategory = await ensureCategory(guild, "📌 START HERE");
@@ -359,6 +372,15 @@ const commands = [
     .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild.toString()),
 
   new SlashCommandBuilder()
+    .setName("role")
+    .setDescription("Manage server roles.")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild.toString())
+    .addSubcommand(s =>
+      s.setName("add")
+        .setDescription("Add the full server role pack.")
+    ),
+
+  new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Check if the bot is online."),
 
@@ -472,6 +494,21 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (interaction.commandName === "ping") {
       return interaction.reply(`Pong! ${client.ws.ping}ms`);
+    }
+
+    if (interaction.commandName === "role") {
+      if (!isModerator(interaction)) {
+        return interaction.reply({ content: "You need Manage Server.", ephemeral: true });
+      }
+
+      if (interaction.options.getSubcommand() === "add") {
+        await interaction.deferReply({ ephemeral: true });
+        const roles = await addRolePack(interaction.guild);
+        saveData();
+        return interaction.editReply(
+          `Done. Added/reused ${Object.keys(roles).length} roles. No channels or other server setup was changed.`
+        );
+      }
     }
 
     if (interaction.commandName === "setup") {
